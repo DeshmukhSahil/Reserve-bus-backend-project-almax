@@ -1,0 +1,54 @@
+name: Deploy Backend to Ubuntu via Docker Hub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Docker
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      # Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Build and Push Docker Image
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/reservebus-backend:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/reservebus-backend:latest
+
+      # Deploy on Ubuntu server
+      - name: Deploy on Server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # Stop and remove existing container if running
+            docker stop reservebus-backend || true
+            docker rm reservebus-backend || true
+
+            # Pull the latest image from Docker Hub
+            docker pull ${{ secrets.DOCKER_USERNAME }}/reservebus-backend:latest
+
+            # Run container with MongoDB URI
+            docker run -d \
+              --name reservebus-backend \
+              -p 8080:8080 \
+              -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+              ${{ secrets.DOCKER_USERNAME }}/reservebus-backend:latest

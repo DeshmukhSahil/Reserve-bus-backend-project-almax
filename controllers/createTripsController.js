@@ -1,9 +1,10 @@
+import mongoose from "mongoose"; // you may keep import if used elsewhere
 import tripsModel from "../models/tripsModel.js";
 
-// Controller for creating trips
 export const createtripsController = async (req, res) => {
   try {
-    // Destructure data from the request body
+    console.log("POST /api/posttrips - req.body:", JSON.stringify(req.body, null, 2));
+
     const {
       date,
       from,
@@ -18,29 +19,45 @@ export const createtripsController = async (req, res) => {
       busFare,
       busName
     } = req.body;
-    
-    const Data = new tripsModel({
-      date,
+
+    if (!date || !from || !to || !busOwnerID || !startTime || !EndTime) {
+      return res.status(400).json({
+        data: null,
+        message: "Missing required fields: date/from/to/busOwnerID/startTime/EndTime"
+      });
+    }
+
+    // No ObjectId casting — keep busOwnerID as string
+    const tripDoc = new tripsModel({
+      date: new Date(date),
       from,
       to,
-      busOwnerID,
+      busOwnerID: String(busOwnerID),
       startTime,
       EndTime,
       category,
-      SeatBooked,
+      SeatBooked: Array.isArray(SeatBooked) ? SeatBooked : (SeatBooked ? [String(SeatBooked)] : []),
       bus_no,
-      amenities_list,
-      busFare,
+      amenities_list: Array.isArray(amenities_list) ? amenities_list : (amenities_list ? [String(amenities_list)] : []),
+      busFare: busFare !== undefined ? Number(busFare) : undefined,
       busName
     });
 
-    // Save the data to the database
-    const saveData = await Data.save();
-
-    // Send a success response with the saved data and a message
-    res.status(200).json({ data: saveData, message: "Booking successful!" });
+    const saved = await tripDoc.save();
+    console.log("Trip saved:", saved._id);
+    return res.status(201).json({ data: saved, message: "Booking successful!" });
   } catch (error) {
-    // Handle errors and send an error response
-    res.status(500).json({ data: null, message: "Something went wrong!" });
+    console.error("createtripsController ERROR:", error);
+    if (error && error.name === "ValidationError") {
+      const details = Object.keys(error.errors).reduce((acc, k) => {
+        acc[k] = error.errors[k].message;
+        return acc;
+      }, {});
+      return res.status(400).json({ data: null, message: "Validation failed", details });
+    }
+    if (error && error.name === "CastError") {
+      return res.status(400).json({ data: null, message: `Cast error: ${error.message}` });
+    }
+    return res.status(500).json({ data: null, message: error.message || "Something went wrong!" });
   }
 };

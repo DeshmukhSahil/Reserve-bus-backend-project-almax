@@ -36,7 +36,7 @@ app.get("/", (req, res) => {
 });
 
 // Define the port to listen on, using an environment variable or default to 3000
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 4000;
 
 // Start the server
 const serverStart = async () => {
@@ -46,7 +46,7 @@ const serverStart = async () => {
 
     // Start the Express server and listen on the specified port
     app.listen(PORT, () =>
-      console.log("Server is running on port 8080"))
+      console.log("Server is running on port 4000"))
   } catch (error) {
     console.log(error)
   }
