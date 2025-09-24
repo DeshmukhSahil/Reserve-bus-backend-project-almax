@@ -49,6 +49,6 @@ jobs:
             # Run container with MongoDB URI
             docker run -d \
               --name reservebus-backend \
-              -p 8080:8080 \
+              -p 4000:4000 \
               -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
               ${{ secrets.DOCKER_USERNAME }}/reservebus-backend:latest
